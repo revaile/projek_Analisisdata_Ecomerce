@@ -2,7 +2,9 @@
 
 ## Setup Environment
 ```
-instsal projek 
+instsal projek
+git clone https://github.com/revaile/projek_Analisisdata_Ecomerce.git
+install python
 instal library yg dibutuhkan
 numpy: 1.24.0
 pandas: 1.5.3
