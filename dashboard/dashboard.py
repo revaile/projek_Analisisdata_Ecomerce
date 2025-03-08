@@ -83,7 +83,6 @@ st.subheader('📈 Tren Jumlah Pesanan per Bulan')
 min_date = df_all['order_approved_at'].min().date()
 max_date = df_all['order_approved_at'].max().date()
 
-# Widget untuk memilih rentang tanggal dengan tampilan lebih nyaman
 st.subheader("📅 Pilih Rentang Waktu")
 col1, col2 = st.columns(2)
 with col1:
@@ -91,28 +90,22 @@ with col1:
 with col2:
     end_date = st.date_input("Sampai Tanggal", max_date, min_value=min_date, max_value=max_date)
 
-# Validasi input agar tanggal awal tidak melebihi tanggal akhir
 if start_date > end_date:
     st.warning("⚠️ Tanggal awal tidak boleh lebih besar dari tanggal akhir. Harap pilih ulang rentang tanggal.")
 else:
-    # Konversi ke datetime
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
 
-    # Filter data berdasarkan rentang tanggal
     df_filtered = df_performa[(pd.to_datetime(df_performa['order_approved_at']) >= start_date) & 
                               (pd.to_datetime(df_performa['order_approved_at']) <= end_date)]
 
-    # Menampilkan informasi jumlah data setelah filter
     st.write(f"📊 Menampilkan data dari **{start_date.strftime('%d %B %Y')}** hingga **{end_date.strftime('%d %B %Y')}** ({len(df_filtered)} data).")
 
-    # Menampilkan bulan dengan order terbanyak & tersedikit setelah filter
     if not df_filtered.empty:
         col1, col2 = st.columns(2)
         col1.metric("📈 Bulan dengan Order Terbanyak", df_filtered.loc[df_filtered['order_count'].idxmax(), 'order_approved_at'])
         col2.metric("📉 Bulan dengan Order Tersedikit", df_filtered.loc[df_filtered['order_count'].idxmin(), 'order_approved_at'])
 
-        # Plot hasil filter
         fig, ax = plt.subplots(figsize=(12, 6))
         ax.plot(df_filtered['order_approved_at'], df_filtered['order_count'], marker='s', linestyle='--', color='crimson', linewidth=2)
         ax.set_xticklabels(df_filtered['order_approved_at'], rotation=45, ha='right')
@@ -129,7 +122,7 @@ st.markdown("Pesanan meningkat dari Desember 2016 hingga November 2017, puncakny
 
 st.markdown("---")
 
-# PERTANYAAN KETIGA
+# KETIGA
 st.subheader('⭐ Tingkat Kepuasan Pembeli')
 rating_service = df_all['review_score'].value_counts().sort_index()
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -145,7 +138,7 @@ st.markdown("Rating **5** paling dominan dengan 66.343 pelanggan.")
 
 st.markdown("---")
 
-# PERTANYAAN LIMA
+# EMPAT
 st.subheader("🗺️ Distribusi Pelanggan Berdasarkan Lokasi")
 
 def plot_brazil_map(data):
