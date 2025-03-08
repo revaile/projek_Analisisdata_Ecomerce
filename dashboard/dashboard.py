@@ -76,16 +76,54 @@ st.markdown("Produk **bed_bath_table** memiliki tingkat permintaan tertinggi, se
 st.markdown("---")
 
 # KEDUA
+# KEDUA
 st.subheader('📈 Tren Jumlah Pesanan per Bulan')
-col1, col2 = st.columns(2)
-col1.metric("Bulan dengan Order Terbanyak", df_performa.loc[df_performa['order_count'].idxmax(), 'order_approved_at'])
-col2.metric("Bulan dengan Order Tersedikit", df_performa.loc[df_performa['order_count'].idxmin(), 'order_approved_at'])
 
-plt.figure(figsize=(12, 6))
-plt.plot(df_performa['order_approved_at'], df_performa['order_count'], marker='s', linestyle='--', color='crimson', linewidth=2)
-plt.xticks(rotation=45)
-plt.title('Jumlah Pesanan Tiap Bulan', fontsize=16)
-st.pyplot(plt)
+# Mendapatkan rentang tanggal dari dataset
+min_date = df_all['order_approved_at'].min().date()
+max_date = df_all['order_approved_at'].max().date()
+
+# Widget untuk memilih rentang tanggal dengan tampilan lebih nyaman
+st.subheader("📅 Pilih Rentang Waktu")
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input("Dari Tanggal", min_date, min_value=min_date, max_value=max_date)
+with col2:
+    end_date = st.date_input("Sampai Tanggal", max_date, min_value=min_date, max_value=max_date)
+
+# Validasi input agar tanggal awal tidak melebihi tanggal akhir
+if start_date > end_date:
+    st.warning("⚠️ Tanggal awal tidak boleh lebih besar dari tanggal akhir. Harap pilih ulang rentang tanggal.")
+else:
+    # Konversi ke datetime
+    start_date = pd.to_datetime(start_date)
+    end_date = pd.to_datetime(end_date)
+
+    # Filter data berdasarkan rentang tanggal
+    df_filtered = df_performa[(pd.to_datetime(df_performa['order_approved_at']) >= start_date) & 
+                              (pd.to_datetime(df_performa['order_approved_at']) <= end_date)]
+
+    # Menampilkan informasi jumlah data setelah filter
+    st.write(f"📊 Menampilkan data dari **{start_date.strftime('%d %B %Y')}** hingga **{end_date.strftime('%d %B %Y')}** ({len(df_filtered)} data).")
+
+    # Menampilkan bulan dengan order terbanyak & tersedikit setelah filter
+    if not df_filtered.empty:
+        col1, col2 = st.columns(2)
+        col1.metric("📈 Bulan dengan Order Terbanyak", df_filtered.loc[df_filtered['order_count'].idxmax(), 'order_approved_at'])
+        col2.metric("📉 Bulan dengan Order Tersedikit", df_filtered.loc[df_filtered['order_count'].idxmin(), 'order_approved_at'])
+
+        # Plot hasil filter
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(df_filtered['order_approved_at'], df_filtered['order_count'], marker='s', linestyle='--', color='crimson', linewidth=2)
+        ax.set_xticklabels(df_filtered['order_approved_at'], rotation=45, ha='right')
+        ax.set_title('Jumlah Pesanan Tiap Bulan', fontsize=16)
+        ax.set_xlabel("Bulan")
+        ax.set_ylabel("Jumlah Pesanan")
+        ax.grid(True)
+        st.pyplot(fig)
+    else:
+        st.warning("⚠️ Tidak ada data yang sesuai dengan rentang waktu yang dipilih.")
+
 
 st.markdown("Pesanan meningkat dari Desember 2016 hingga November 2017, puncaknya pada November 2017.")
 
