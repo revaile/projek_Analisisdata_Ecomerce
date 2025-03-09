@@ -37,43 +37,84 @@ st.title('📊 Proyek Analisis Data: E-Commerce Public Dataset')
 st.markdown("---")
 
 # PERTAMA
+# --- JUDUL ---
 st.subheader("📦 Produk dengan Permintaan Tertinggi & Terendah")
-col1, col2 = st.columns(2)
-col1.metric("Produk Terbanyak", pertanyaanSatu['product_id'].max())
-col2.metric("Produk Tersedikit", pertanyaanSatu['product_id'].min())
 
-fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(24, 8))
-colors_positive = ["#40E65F", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
-colors_negative = ["#D63341", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+# --- FILTER TAHUN DAN BULAN ---
+st.subheader("📅 Pilih Rentang Waktu")
+available_years = sorted(df_all['order_approved_at'].dt.year.unique())
+available_years.insert(0, "Semua")
+selected_year = st.selectbox("Pilih Tahun", available_years, key="tahun_produk")
 
-sorted_new = pertanyaanSatu.sort_values(by="product_id", ascending=False).head(5)
-sns.barplot(x="product_id", y="product_category_name_english", 
-    data=pertanyaanSatu.sort_values(by="product_id", ascending=False).head(5), 
-    palette=colors_positive, hue="product_id",  
-    hue_order=sorted(sorted_new['product_id'], reverse=True),
-    ax=ax[0])
-ax[0].set_xlabel('Frekuensi')
-ax[0].set_ylabel('Nama Produk')
-ax[0].set_xlabel(None)
-ax[0].set_title("Produk dengan jumlah pembelian terbesar", loc="center", fontsize=18)
-ax[0].tick_params(axis ='y', labelsize=15)
+if selected_year != "Semua":
+    available_months = sorted(df_all[df_all['order_approved_at'].dt.year == selected_year]['order_approved_at'].dt.month.unique())
+else:
+    available_months = sorted(df_all['order_approved_at'].dt.month.unique())
 
-sns.barplot(x="product_id", y="product_category_name_english", data=pertanyaanSatu.sort_values(by="product_id", ascending=True).head(5), 
-    palette=colors_negative, hue="product_id", ax=ax[1])
-ax[1].set_xlabel('Frekuensi')
-ax[1].set_ylabel('Nama Produk')
-ax[1].invert_xaxis()
-ax[1].yaxis.set_label_position("right")
-ax[1].yaxis.tick_right()
-ax[1].set_title("Produk dengan jumlah pembelian terkecil", loc="center", fontsize=18)
-ax[1].tick_params(axis='y', labelsize=15)
+available_months.insert(0, "Semua")
+selected_month = st.selectbox("Pilih Bulan", available_months, key="bulan_produk")
 
-plt.suptitle("Produk yang memiliki jumlah pembelian terbesar dan terkecil", fontsize=20)
-st.pyplot(fig)
+# --- FILTER DATA ---
+try:
+    df_filtered = df_all.copy()
+    
+    if selected_year != "Semua":
+        df_filtered = df_filtered[df_filtered['order_approved_at'].dt.year == selected_year]
 
-st.markdown("Produk **bed_bath_table** memiliki tingkat permintaan tertinggi, sedangkan **security_and_services** memiliki permintaan terendah.")
+    if selected_month != "Semua":
+        df_filtered = df_filtered[df_filtered['order_approved_at'].dt.month == selected_month]
+
+    if df_filtered.empty:
+        st.warning("⚠️ Tidak ada data untuk rentang waktu yang dipilih.")
+    else:
+        pertanyaanSatu = df_filtered.groupby('product_category_name_english')['product_id'].count().reset_index().sort_values(by='product_id', ascending=False)
+
+        col1, col2 = st.columns(2)
+        col1.metric("Produk Terbanyak", pertanyaanSatu['product_id'].max())
+
+        # **Menampilkan semua produk dengan permintaan tersedikit**
+        produk_tersedikit = pertanyaanSatu[pertanyaanSatu['product_id'] == pertanyaanSatu['product_id'].min()]
+        produk_tersedikit_list = ", ".join(produk_tersedikit['product_category_name_english'].tolist())
+        col2.metric("Produk Tersedikit", pertanyaanSatu['product_id'].min())
+
+        # --- PLOTTING GRAFIK ---
+        fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(24, 8))
+        colors_positive = ["#40E65F", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+        colors_negative = ["#D63341", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+
+        sorted_new = pertanyaanSatu.sort_values(by="product_id", ascending=False).head(5)
+        sns.barplot(x="product_id", y="product_category_name_english", 
+                    data=sorted_new, palette=colors_positive, hue="product_id",  
+                    hue_order=sorted(sorted_new['product_id'], reverse=True),
+                    ax=ax[0])
+        ax[0].set_xlabel('Frekuensi')
+        ax[0].set_ylabel('Nama Produk')
+        ax[0].set_title("Produk dengan jumlah pembelian terbesar", loc="center", fontsize=18)
+        ax[0].tick_params(axis='y', labelsize=15)
+
+        sorted_least = pertanyaanSatu.sort_values(by="product_id", ascending=True).head(5)
+        sns.barplot(x="product_id", y="product_category_name_english", 
+                    data=sorted_least, palette=colors_negative, hue="product_id", ax=ax[1])
+        ax[1].set_xlabel('Frekuensi')
+        ax[1].set_ylabel('Nama Produk')
+        ax[1].invert_xaxis()
+        ax[1].yaxis.set_label_position("right")
+        ax[1].yaxis.tick_right()
+        ax[1].set_title("Produk dengan jumlah pembelian terkecil", loc="center", fontsize=18)
+        ax[1].tick_params(axis='y', labelsize=15)
+
+        plt.suptitle("Produk yang memiliki jumlah pembelian terbesar dan terkecil", fontsize=20)
+        st.pyplot(fig)
+
+        # --- OUTPUT HASIL ---
+        st.markdown(f"📈 **Produk dengan permintaan tertinggi**: **{pertanyaanSatu.iloc[0]['product_category_name_english']}**")
+        st.markdown(f"📉 **Produk dengan permintaan terendah**: {produk_tersedikit_list}")
+
+except Exception as e:
+    st.error(f"❌ Terjadi kesalahan: {e}")
 
 st.markdown("---")
+
 
 # KEDUA
 # KEDUA
@@ -124,17 +165,45 @@ st.markdown("---")
 
 # KETIGA
 st.subheader('⭐ Tingkat Kepuasan Pembeli')
-rating_service = df_all['review_score'].value_counts().sort_index()
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(x=rating_service.index, y=rating_service.values, palette=["#40E65F" if score == rating_service.idxmax() else "#D3D3D3" for score in rating_service.index], ax=ax)
-ax.set_title("Tingkat Kepuasan Pembeli dari Rating", fontsize=15)
-ax.set_xlabel("Rating")
-ax.set_ylabel("Jumlah Customer")
-for p in ax.patches:
-    ax.annotate(f'{int(p.get_height())}', (p.get_x() + p.get_width() / 2, p.get_height()), ha='center', va='bottom', fontsize=11, color='black')
-st.pyplot(fig)
 
-st.markdown("Rating **5** paling dominan dengan 66.343 pelanggan.")
+# Filter berdasarkan tahun
+st.subheader("📅 Pilih Tahun")
+available_years = sorted(df_all['order_approved_at'].dt.year.unique())
+available_years.insert(0, "Semua")
+selected_year = st.selectbox("Pilih Tahun", available_years, key="tahun_rating")
+
+# Filter data berdasarkan tahun yang dipilih
+try:
+    if selected_year == "Semua":
+        df_filtered_rating = df_all
+    else:
+        df_filtered_rating = df_all[df_all['order_approved_at'].dt.year == selected_year]
+    
+    if df_filtered_rating.empty:
+        st.warning("⚠️ Tidak ada data untuk tahun yang dipilih.")
+    else:
+        rating_service = df_filtered_rating['review_score'].value_counts().sort_index()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.barplot(x=rating_service.index, y=rating_service.values, 
+                    palette=["#40E65F" if score == rating_service.idxmax() else "#D3D3D3" for score in rating_service.index], ax=ax)
+        ax.set_title(f"Tingkat Kepuasan Pembeli dari Rating pada Tahun {selected_year}", fontsize=15)
+        ax.set_xlabel("Rating")
+        ax.set_ylabel("Jumlah Customer")
+        for p in ax.patches:
+            ax.annotate(f'{int(p.get_height())}', (p.get_x() + p.get_width() / 2, p.get_height()), 
+                        ha='center', va='bottom', fontsize=11, color='black')
+        st.pyplot(fig)
+
+        if selected_year == "Semua":
+            st.markdown("Rating **5** paling dominan dengan 66.343 pelanggan.")
+        else:
+            st.markdown(f"Tingkat kepuasan pelanggan pada tahun **{selected_year}**:")
+            for rating, count in rating_service.items():
+                st.markdown(f"- Rating **{rating}**: {count} pelanggan")
+
+except Exception as e:
+    st.error(f"Terjadi kesalahan: {e}")
 
 st.markdown("---")
 
